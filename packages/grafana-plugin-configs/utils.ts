@@ -19,15 +19,20 @@ export function getPluginJson() {
 }
 
 export async function getEntries(): Promise<Record<string, string>> {
+  // On Windows, path.resolve produces backslash-separated paths, which the glob
+  // package interprets as escape characters rather than separators — matching
+  // nothing, so webpack receives an empty entry and never emits module.js.
+  // windowsPathsNoEscape treats backslashes as separators; it is a no-op on POSIX.
   const pluginsJson = await glob(path.resolve(process.cwd(), '**/plugin.json'), {
     ignore: ['**/dist/**'],
     absolute: true,
+    windowsPathsNoEscape: true,
   });
 
   const plugins = await Promise.all(
     pluginsJson.map((pluginJson) => {
       const folder = path.dirname(pluginJson);
-      return glob(`${folder}/module.{ts,tsx,js,jsx}`, { absolute: true });
+      return glob(`${folder}/module.{ts,tsx,js,jsx}`, { absolute: true, windowsPathsNoEscape: true });
     })
   );
 
